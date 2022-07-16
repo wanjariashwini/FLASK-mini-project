@@ -27,6 +27,3 @@ class SmsService:
         MongoService.log_response("otp_service", rq_time, request, response, rs_time, url, status, collection_name)
 
         return flag
-
-
-SmsService.send_sms("4444", "7972944544")
