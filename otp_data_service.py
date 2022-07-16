@@ -1,7 +1,8 @@
 import mysql.connector
 import random
 import uuid
-from datetime import datetime
+import re
+import datetime
 from fast2_sms_service import *
 
 
@@ -30,10 +31,10 @@ class OTPOperation:
             transaction_id = uuid.uuid4()
             transaction_details = str(transaction_id) + " " + user
             if otp_method == "sms":
-                mdn = input_request.get("mdn")
-                otp = random.randint(100000, 999999)
+                mdn = str(input_request.get("mdn"))
+                otp = str(random.randint(100000, 999999))
                 status = SmsService.send_sms(otp, mdn)
-                now = datetime.now()
+                now = datetime.datetime.now()
                 date_time = now.strftime("%d-%m-%Y T %H:%M:%S:%f")
                 if status:
                     session_key = uuid.uuid4()
@@ -43,6 +44,7 @@ class OTPOperation:
                 else:
                     record = {"txn_id": transaction_details, "status": "failed", "date_time": date_time}
                     return record
+            '''
             else:
                 email = input_request.get("email")
                 otp = random.randint(100000, 999999)
@@ -57,20 +59,17 @@ class OTPOperation:
                 else:
                     record = {"txn_id": transaction_details, "status": "failed", "date_time": date_time}
                     return record
+                '''
 
     @staticmethod
-    def send_message(input_request):
-        email = input_request.get("email_id")
-        name = input_request.get("user_name")
-        file1 = open("otp.txt", "r")
-        OTP = file1.readline()
-        print(OTP)
-        file1.close()
+    def is_valid_mdn(mdn):
+        # 1) Begins with 0 or 91
+        # 2) Then contains 7 or 8 or 9.
+        # 3) Then contains 9 digits
+        Pattern = re.compile("(0|91)?[7-9][0-9]{9}")
+        return Pattern.match(mdn)
 
-        if email and OTP:
-            return True
-        else:
-            return False
+
 
     @staticmethod
     def otp_validate(otp_data):
