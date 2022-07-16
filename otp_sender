@@ -4,7 +4,7 @@ from otp_data_service import *
 import logging
 from otp_app_msg import *
 
-USER = UserOperation()
+OTP = OTPOperation()
 
 app = Flask(__name__)
 
@@ -18,31 +18,30 @@ logging.basicConfig(filename=log_file_name,
 logger = logging.getLogger('RestAPP')
 
 
-@app.route('/initiateOTP', methods=['POST'])
-def initiate_OTP():
+@app.route('/sendOTP', methods=['POST'])
+def send_OTP():
     logger.info("OTP operation started")
     if request:
         if request.authorization:
             auth = request.authorization
             print(auth)
-            if auth and USER.is_user_valid(auth):
+            if auth and OTP.is_user_valid(auth):
                 input_request = request.json
-                print(input_request)
-                is_email_valid, record = USER.generate_otp(input_request)
-                print(is_email_valid, record)
-                if record:
-                    if is_email_valid:
-                        print(record)
-                        msg_status = USER.send_message(input_request)
-                        if msg_status:
-                            record["status"] = "message send"
-                            return jsonify(record)
+                if input_request:
+                    mdn = input_request.get("mdn")
+                    otp_method = input_request.get("otp_method")
+                    if mdn and OTP.is_valid_mdn(mdn):
+                        if otp_method in ("sms","email"):
+                            user = auth.get("username")
+                            record = OTP.send_otp(input_request, user)
+                            print(record)
+                            if record:
+                                return jsonify(record)
                         else:
-                            record["status"] = "message not send"
-                            return jsonify(record)
+                            return create_response(FAILED, CHECK_OTP_METHOD)
                     else:
-                        print(record)
-                        return jsonify(record)
+                        return create_response(FAILED, MDN_CHECK)
+
             else:
                 return create_response(FAILED, INVALID_USER)
         else:
@@ -56,12 +55,12 @@ def validate_OTP():
     logger.info("OTP validation started")
     if request:
         auth = request.authorization
-        if auth and USER.is_user_valid(auth):
+        if auth and OTP.is_user_valid(auth):
             otp_data = request.json
             if otp_data:
 
-                if USER.otp_validate(otp_data):
-                    status = USER.otp_validate(otp_data)
+                if OTP.otp_validate(otp_data):
+                    status = OTP.otp_validate(otp_data)
                     if status:
                         return create_response(SUCCESS, VALID_OTP)
                     else:
@@ -79,10 +78,7 @@ def validate_OTP():
 
 if __name__ == '__main__':
     app.run(host="localhost", port="5000", debug=True)
-    """app.run(host="0.0.0.0", port="5001", debug=True)"""
-    """##app.add_url_rule(‘/’, ‘hello’, hello_world)"""
 
 """
- http://localhost:5000/initiateOTP
- http://localhost:5000/validateOTP
+ http://localhost:5000/sendOTP
 """
