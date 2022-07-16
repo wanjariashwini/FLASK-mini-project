@@ -1,0 +1,88 @@
+from flask import Flask, jsonify, request
+import json
+from otp_data_service import *
+import logging
+from otp_app_msg import *
+
+USER = UserOperation()
+
+app = Flask(__name__)
+
+log_file_name = "emp_app.log"
+logging.basicConfig(filename=log_file_name,
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.DEBUG)
+
+logger = logging.getLogger('RestAPP')
+
+
+@app.route('/initiateOTP', methods=['POST'])
+def initiate_OTP():
+    logger.info("OTP operation started")
+    if request:
+        if request.authorization:
+            auth = request.authorization
+            print(auth)
+            if auth and USER.is_user_valid(auth):
+                input_request = request.json
+                print(input_request)
+                is_email_valid, record = USER.generate_otp(input_request)
+                print(is_email_valid, record)
+                if record:
+                    if is_email_valid:
+                        print(record)
+                        msg_status = USER.send_message(input_request)
+                        if msg_status:
+                            record["status"] = "message send"
+                            return jsonify(record)
+                        else:
+                            record["status"] = "message not send"
+                            return jsonify(record)
+                    else:
+                        print(record)
+                        return jsonify(record)
+            else:
+                return create_response(FAILED, INVALID_USER)
+        else:
+            return create_response(FAILED, USER_MISSING)
+    else:
+        return create_response(FAILED, USER_MISSING)
+
+
+@app.route('/validateOTP', methods=['POST'])
+def validate_OTP():
+    logger.info("OTP validation started")
+    if request:
+        auth = request.authorization
+        if auth and USER.is_user_valid(auth):
+            otp_data = request.json
+            if otp_data:
+
+                if USER.otp_validate(otp_data):
+                    status = USER.otp_validate(otp_data)
+                    if status:
+                        return create_response(SUCCESS, VALID_OTP)
+                    else:
+                        return create_response(FAILED, OTP_NOT_VALID)
+                else:
+                    return create_response(FAILED, OTP_NOT_VALID)
+
+            else:
+                return create_response(FAILED, LIMIT_EXCEEDED)
+        else:
+            return create_response(FAILED, INVALID_USER)
+    else:
+        return create_response(FAILED, USER_MISSING)
+
+
+if __name__ == '__main__':
+    app.run(host="localhost", port="5000", debug=True)
+    """app.run(host="0.0.0.0", port="5001", debug=True)"""
+    """##app.add_url_rule(‘/’, ‘hello’, hello_world)"""
+
+"""
+ http://localhost:5000/initiateOTP
+ http://localhost:5000/validateOTP
+"""
