@@ -1,7 +1,12 @@
 
+
 SERVER_HEALTH_STATUS = "Server is running fine"
 SUCCESS = "SUCCESS"
 FAILED = "FAILED"
+
+CHECK_OTP_METHOD = "Plz select valid OTP method"
+MDN_CHECK = "Plz enter valid mobile number"
+
 
 OTP_NOT_FOUND = "OTP not generated, try again"
 CHECK_EMAIL = "Please insert correct email id"
